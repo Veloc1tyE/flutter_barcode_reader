@@ -1,54 +1,15 @@
 #import "BarcodeScanPlugin.h"
-#import "BarcodeScannerViewController.h"
+#if __has_include(<barcode_scan/barcode_scan-Swift.h>)
+#import <barcode_scan/barcode_scan-Swift.h>
+#else
+// Support project import fallback if the generated compatibility header
+// is not copied when this plugin is created as a library.
+// https://forums.swift.org/t/swift-static-libraries-dont-copy-generated-objective-c-header/19816
+#import "barcode_scan-Swift.h"
+#endif
 
 @implementation BarcodeScanPlugin
 + (void)registerWithRegistrar:(NSObject<FlutterPluginRegistrar>*)registrar {
-    FlutterMethodChannel *channel = [FlutterMethodChannel methodChannelWithName:@"com.apptreesoftware.barcode_scan"
-                                                                binaryMessenger:registrar.messenger];
-    BarcodeScanPlugin *instance = [BarcodeScanPlugin new];
-    instance.hostViewController = [UIApplication sharedApplication].delegate.window.rootViewController;
-    [registrar addMethodCallDelegate:instance channel:channel];
+  [SwiftBarcodeScanPlugin registerWithRegistrar:registrar];
 }
-
-- (void)handleMethodCall:(FlutterMethodCall *)call result:(FlutterResult)result {
-    if ([@"scan" isEqualToString:call.method]) {
-        NSDictionary *arguments = [call arguments];
-        NSString *theme = arguments[@"theme"];
-        if (theme == NULL || theme.length == 0) {
-            result([FlutterError errorWithCode:@"error"
-                                       message:@"Theme is required"
-                                       details:nil]);
-            return;
-        }
-        self.result = result;
-        [self showBarcodeView:theme];
-    } else {
-        result(FlutterMethodNotImplemented);
-    }
-}
-
-- (void)showBarcodeView:(NSString *)theme {
-    BarcodeScannerViewController *scannerViewController = [[BarcodeScannerViewController alloc] initWithTheme:theme];
-    UINavigationController *navigationController = [[UINavigationController alloc] initWithRootViewController:scannerViewController];
-    if (@available(iOS 13.0, *)) {        
-        [navigationController setModalPresentationStyle:UIModalPresentationFullScreen];
-    }
-    scannerViewController.delegate = self;
-    [self.hostViewController presentViewController:navigationController animated:NO completion:nil];
-}
-
-- (void)barcodeScannerViewController:(BarcodeScannerViewController *)controller didScanBarcodeWithResult:(NSString *)result {
-    if (self.result) {
-        self.result(result);
-    }
-}
-
-- (void)barcodeScannerViewController:(BarcodeScannerViewController *)controller didFailWithErrorCode:(NSString *)errorCode {
-    if (self.result){
-        self.result([FlutterError errorWithCode:errorCode
-                                        message:nil
-                                        details:nil]);
-    }
-}
-
 @end
